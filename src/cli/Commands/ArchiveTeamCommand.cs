@@ -22,16 +22,36 @@ namespace Clarius.Edu.CLI
 
         async public override Task RunInternal()
         {
-            var grp = Client.GetGroup(Group);
-
             Log.Logger = new LoggerConfiguration()
             .WriteTo.Console(outputTemplate: "{Message}{NewLine}")
             .CreateLogger();
 
-            var action = base.Value ? "Archiving" : "Unarchiving";
-            Log.Logger.Information($"{action} team {Group.DisplayName}...");
+            var aliases = new List<string>();
 
-            await grp.Archive(base.Value);
+            if (Group != null)
+            {
+                aliases.Add(Group.MailNickname);
+            }
+            else
+            {
+                aliases.AddRange(base.AliasesList);
+            }
+
+            int recordCount = 0;
+
+            foreach (var g in aliases)
+            {
+                var grp = await Client.GetGroupFromAlias(g);
+                var vgrp = Client.GetGroup(grp);
+
+                var action = base.Value ? "Archiving" : "Unarchiving";
+                Log.Logger.Information($"{action} team {Group.DisplayName}...");
+
+                await vgrp.Archive(base.Value);
+                recordCount++;
+            }
+
+            Log.Logger.Information($"Processed {recordCount} records");
         }
 
         public override List<string> GetSupportedCommands()
